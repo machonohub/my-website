@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>お誕生日ゲーム</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Zen+Maru+Gothic:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0a0a1a;
+    --green: #00ff88;
+    --pink: #ff2d78;
+    --yellow: #ffe600;
+    --blue: #00cfff;
+    --white: #ffffff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'Press Start 2P', monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    overflow: hidden;
+    touch-action: none;
+  }
+
+  /* ===== TITLE SCREEN ===== */
+  #title-screen {
+    text-align: center;
+    padding: 20px;
+    animation: fadeIn 1s ease;
+  }
+  #title-screen h1 {
+    font-size: clamp(12px, 4vw, 20px);
+    color: var(--green);
+    text-shadow: 0 0 20px var(--green);
+    line-height: 2;
+    margin-bottom: 30px;
+  }
+  #title-screen p {
+    font-size: clamp(8px, 2.5vw, 12px);
+    color: var(--yellow);
+    margin-bottom: 40px;
+    line-height: 2;
+  }
+  #start-btn {
+    background: transparent;
+    border: 3px solid var(--pink);
+    color: var(--pink);
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(10px, 3vw, 14px);
+    padding: 16px 32px;
+    cursor: pointer;
+    text-shadow: 0 0 10px var(--pink);
+    box-shadow: 0 0 20px var(--pink);
+    animation: blink 1s step-end infinite;
+    transition: all 0.2s;
+  }
+  #start-btn:hover, #start-btn:active {
+    background: var(--pink);
+    color: #000;
+    animation: none;
+  }
+
+  /* ===== GAME SCREEN ===== */
+  #game-screen { display: none; width: 100%; flex-direction: column; align-items: center; }
+
+  #hud {
+    display: flex;
+    justify-content: space-between;
+    width: min(380px, 96vw);
+    padding: 8px 4px;
+    font-size: clamp(7px, 2vw, 10px);
+    color: var(--green);
+  }
+
+  #canvas {
+    border: 2px solid var(--green);
+    box-shadow: 0 0 30px var(--green), inset 0 0 30px rgba(0,255,136,0.05);
+    background: #050510;
+    display: block;
+    image-rendering: pixelated;
+  }
+
+  /* Mobile Controls */
+  #controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: min(380px, 96vw);
+    margin-top: 16px;
+    gap: 10px;
+  }
+  .ctrl-btn {
+    background: rgba(0,255,136,0.1);
+    border: 2px solid var(--green);
+    color: var(--green);
+    font-family: 'Press Start 2P', monospace;
+    font-size: 18px;
+    width: 64px; height: 64px;
+    border-radius: 8px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.1s;
+  }
+  .ctrl-btn:active {
+    background: rgba(0,255,136,0.4);
+  }
+  #fire-btn {
+    background: rgba(255,45,120,0.15);
+    border-color: var(--pink);
+    color: var(--pink);
+    width: 80px; height: 64px;
+    font-size: 12px;
+  }
+  #fire-btn:active { background: rgba(255,45,120,0.5); }
+
+  /* ===== CLEAR SCREEN ===== */
+  #clear-screen {
+    display: none;
+    text-align: center;
+    padding: 20px;
+    max-width: 90vw;
+  }
+  #clear-title {
+    font-size: clamp(14px, 5vw, 28px);
+    color: var(--yellow);
+    text-shadow: 0 0 30px var(--yellow);
+    margin-bottom: 20px;
+    animation: rainbow 1s linear infinite;
+  }
+  #clear-msg {
+    font-family: 'Zen Maru Gothic', sans-serif;
+    font-size: clamp(13px, 3.5vw, 18px);
+    color: var(--white);
+    line-height: 1.8;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 12px;
+    text-align: left;
+    min-height: 80px;
+    white-space: pre-wrap;
+  }
+  #loading-msg {
+    font-size: clamp(8px, 2.5vw, 11px);
+    color: var(--blue);
+    animation: blink 0.8s step-end infinite;
+  }
+  #replay-btn {
+    margin-top: 20px;
+    background: transparent;
+    border: 2px solid var(--green);
+    color: var(--green);
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(8px, 2.5vw, 11px);
+    padding: 12px 24px;
+    cursor: pointer;
+  }
+
+  /* Confetti */
+  .confetti {
+    position: fixed;
+    width: 10px; height: 10px;
+    pointer-events: none;
+    animation: fall linear forwards;
+  }
+
+  @keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes blink { 50% { opacity: 0; } }
+  @keyframes rainbow {
+    0%{color:#ff2d78} 20%{color:#ffe600} 40%{color:#00ff88} 60%{color:#00cfff} 80%{color:#bf5fff} 100%{color:#ff2d78}
+  }
+  @keyframes fall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TITLE -->
+<div id="title-screen">
+  <h1 id="title-heading"></h1>
+  <p id="title-subtitle"></p>
+  <button id="start-btn" onclick="startGame()">▶ START</button>
+</div>
+
+<!-- GAME -->
+<div id="game-screen">
+  <div id="hud">
+    <span>SCORE: <span id="score">0</span></span>
+    <span>❤️ <span id="lives">3</span></span>
+  </div>
+  <canvas id="canvas"></canvas>
+  <div id="controls">
+    <button class="ctrl-btn" id="left-btn">◀</button>
+    <button class="ctrl-btn" id="fire-btn" id="fire-btn-el">FIRE</button>
+    <button class="ctrl-btn" id="right-btn">▶</button>
+  </div>
+</div>
+
+<!-- CLEAR -->
+<div id="clear-screen">
+  <div id="clear-title">🎉 MISSION COMPLETE!! 🎉</div>
+  <div id="clear-msg">
+    <span id="loading-msg">Claudeがメッセージを考え中...</span>
+  </div>
+  <button id="replay-btn" onclick="location.reload()">🔄 もう一回遊ぶ</button>
+</div>
+
+<script>
+/* =====================================================================
+   ▼▼▼ ここだけ書き換えれば、誰の誕生日にも使えます ▼▼▼
+
+   【使い方】
+   1. このファイルをコピーして「○○_birthday.html」のような名前にする
+   2. 下の CONFIG の中身を、お祝いしたい人に合わせて書き換える
+      - targetName     : 相手の呼び方（例: "田中さん"、"ゆうこちゃん"）
+      - pageTitle      : ブラウザタブに表示されるタイトル
+      - titleHeading   : ゲーム開始画面の大見出し（<br>で改行可）
+      - subtitle       : ゲーム開始画面のサブ説明文（<br>で改行可）
+      - messages       : クリア後にランダム表示されるお祝いメッセージ
+                         （配列に好きなだけ追加OK。\n で改行）
+      - themeColors    : 色を変えたい場合のみ調整（変えなくてもOK）
+
+   3. ファイルを開けばすぐ遊べます！
+   ===================================================================== */
+
+const CONFIG = {
+  targetName: "理哉くん",
+
+  pageTitle: "理哉くんへ",
+
+  titleHeading: "🎮 理哉くんへ<br>ミッション開始！",
+
+  subtitle: "エイリアンを全滅させると<br>大切なメッセージが届くよ👾",
+
+  themeColors: {
+    bg:     "#0a0a1a",
+    green:  "#00ff88",
+    pink:   "#ff2d78",
+    yellow: "#ffe600",
+    blue:   "#00cfff"
+  },
+
+  messages: [
+    `理哉くんへ 🎮\n\nインベーダーを全滅させるとは…さすがです。宇宙も震えてます。\nそんな理哉くんの誕生日を、地球上の誰よりも先に祝わせてください🌍\nお誕生日おめでとうございます！これからも元気で最高な一年を！🎉`,
+
+    `理哉くんへ 👾\n\nエイリアンどもをバッタバッタと倒すとは、恐ろしい人です（褒めてます）。\nそんな無双な理哉くんが、今日めでたく一つ年を重ねました！\nおめでとう！来年もその調子で人生も無双してください🚀✨`,
+
+    `理哉くんへ 🎂\n\nこのゲームをクリアするために何回やりましたか？\n1回目？すごすぎ。3回目？それも十分すごい。10回目？その根性が好きです。\nどちらにせよ、お誕生日おめでとうございます！今日は思いっきり祝われてください🎊`,
+
+    `理哉くんへ ✨\n\nインベーダーを倒した腕前、宇宙警備隊に採用されるレベルです。\nでも今日だけは戦いをやめて、ケーキでも食べてゆっくりしてください🍰\nお誕生日おめでとう！理哉くんがいてくれてよかったな、と思ってる人がここにいます😊`,
+
+    `理哉くんへ 🌟\n\nゲームクリアおめでとう！そしてお誕生日おめでとう！\n一度に二つもおめでとうを言える日って、なかなかないですよ。\n今日という日が、理哉くんにとって最高の一日になりますように🎉🥳`
+  ]
+};
+
+/* =====================================================================
+   ▲▲▲ 書き換えはここまで。これより下は触らなくてOKです ▲▲▲
+   ===================================================================== */
+
+// CONFIG を画面に反映
+document.title = CONFIG.pageTitle;
+document.getElementById('title-heading').innerHTML = CONFIG.titleHeading;
+document.getElementById('title-subtitle').innerHTML = CONFIG.subtitle;
+
+// テーマカラーを反映
+const root = document.documentElement;
+root.style.setProperty('--bg',     CONFIG.themeColors.bg);
+root.style.setProperty('--green',  CONFIG.themeColors.green);
+root.style.setProperty('--pink',   CONFIG.themeColors.pink);
+root.style.setProperty('--yellow', CONFIG.themeColors.yellow);
+root.style.setProperty('--blue',   CONFIG.themeColors.blue);
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+// Canvas size
+const W = Math.min(380, window.innerWidth * 0.96);
+const H = Math.min(560, window.innerHeight * 0.65);
+canvas.width = W;
+canvas.height = H;
+
+// エイリアン設定（小さめサイズ、バラバラ動作）
+const ALIEN_W = Math.floor(W / 18);
+const ALIEN_H = Math.floor(ALIEN_W * 0.9);
+const ALIEN_COUNT = 8;
+
+let state = {
+  player: { x: W/2, y: H - 30, w: 32, h: 14, speed: 4 },
+  bullets: [],
+  alienBullets: [],
+  aliens: [],
+  score: 0,
+  lives: 3,
+  gameOver: false,
+  cleared: false,
+  keys: {},
+  touchLeft: false,
+  touchRight: false,
+  touchFire: false,
+  lastFire: 0,
+  lastAlienFire: 0,
+  animFrame: 0,
+};
+
+function initAliens() {
+  state.aliens = [];
+  for(let i = 0; i < ALIEN_COUNT; i++) {
+    // 画面上部にランダム配置（Y固定、下降なし）
+    const row = Math.floor(i / 4);
+    state.aliens.push({
+      x: 20 + Math.random() * (W - 60),
+      y: 30 + row * 60,
+      w: ALIEN_W, h: ALIEN_H,
+      alive: true,
+      vx: (Math.random() * 0.7 + 0.4) * (Math.random() < 0.5 ? 1 : -1),
+      type: i % 2,
+    });
+  }
+}
+
+function startGame() {
+  document.getElementById('title-screen').style.display = 'none';
+  document.getElementById('game-screen').style.display = 'flex';
+  initAliens();
+  requestAnimationFrame(loop);
+}
+
+// Keyboard
+document.addEventListener('keydown', e => { state.keys[e.key] = true; });
+document.addEventListener('keyup', e => { state.keys[e.key] = false; });
+
+// Touch controls
+function addTouch(id, prop) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('touchstart', e => { e.preventDefault(); state[prop] = true; }, {passive:false});
+  el.addEventListener('touchend', e => { e.preventDefault(); state[prop] = false; }, {passive:false});
+  el.addEventListener('mousedown', () => state[prop] = true);
+  el.addEventListener('mouseup', () => state[prop] = false);
+}
+addTouch('left-btn', 'touchLeft');
+addTouch('right-btn', 'touchRight');
+addTouch('fire-btn', 'touchFire');
+
+function drawPlayer(p) {
+  ctx.fillStyle = CONFIG.themeColors.green;
+  // Body
+  ctx.fillRect(p.x - p.w/2, p.y - p.h/2, p.w, p.h);
+  // Gun
+  ctx.fillRect(p.x - 3, p.y - p.h/2 - 7, 6, 8);
+  // Legs
+  ctx.fillRect(p.x - p.w/2, p.y + p.h/2 - 4, 8, 4);
+  ctx.fillRect(p.x + p.w/2 - 8, p.y + p.h/2 - 4, 8, 4);
+}
+
+function drawAlien(a, frame) {
+  if (!a.alive) return;
+  ctx.save();
+  ctx.translate(a.x + a.w/2, a.y + a.h/2);
+  const colors = [CONFIG.themeColors.pink, CONFIG.themeColors.yellow, CONFIG.themeColors.blue];
+  ctx.fillStyle = colors[a.type];
+  const f = frame % 2;
+  if (a.type === 2) {
+    // UFO type
+    ctx.beginPath();
+    ctx.ellipse(0, 2, a.w/2, a.h/3, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillRect(-a.w/4, -a.h/2, a.w/2, a.h/2);
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, a.w/5, a.h/5, 0, 0, Math.PI*2);
+    ctx.fill();
+  } else if (a.type === 1) {
+    // Crab type
+    ctx.fillRect(-a.w/2+2, -a.h/4, a.w-4, a.h/2);
+    ctx.fillRect(-a.w/3, -a.h/2, a.w*2/3, a.h/3);
+    // antennae
+    ctx.fillRect(-a.w/2 + (f?2:0), -a.h/2 - 4, 3, 5);
+    ctx.fillRect(a.w/2 - 5 - (f?2:0), -a.h/2 - 4, 3, 5);
+    // legs
+    ctx.fillRect(-a.w/2 - (f?3:0), a.h/4, 4, 3);
+    ctx.fillRect(a.w/2-4 + (f?3:0), a.h/4, 4, 3);
+  } else {
+    // Squid type
+    ctx.fillRect(-a.w/3, -a.h/2, a.w*2/3, a.h);
+    ctx.fillRect(-a.w/2, -a.h/4, a.w, a.h/2);
+    ctx.fillStyle = colors[0];
+    const ey = f ? -2 : 0;
+    ctx.fillRect(-a.w/5, -a.h/4 + ey, 4, 4);
+    ctx.fillRect(a.w/5-4, -a.h/4 + ey, 4, 4);
+  }
+  ctx.restore();
+}
+
+function loop(ts) {
+  if (state.gameOver || state.cleared) return;
+
+  // Input
+  const p = state.player;
+  const spd = p.speed * (W / 380);
+  if ((state.keys['ArrowLeft'] || state.keys['a']) || state.touchLeft) p.x = Math.max(p.w/2, p.x - spd);
+  if ((state.keys['ArrowRight'] || state.keys['d']) || state.touchRight) p.x = Math.min(W - p.w/2, p.x + spd);
+
+  const canFire = ts - state.lastFire > 400;
+  if (((state.keys[' '] || state.keys['z']) || state.touchFire) && canFire) {
+    state.bullets.push({ x: p.x, y: p.y - p.h/2, vy: -7 });
+    state.lastFire = ts;
+  }
+
+  // Move bullets
+  state.bullets = state.bullets.filter(b => b.y > -10);
+  state.bullets.forEach(b => b.y += b.vy);
+
+  // Alien fire（頻度さらにアップ）
+  const aliveAliens = state.aliens.filter(a => a.alive);
+  if (aliveAliens.length > 0 && ts - state.lastAlienFire > Math.max(400, 900 - state.score * 2)) {
+    const shooter = aliveAliens[Math.floor(Math.random() * aliveAliens.length)];
+    state.alienBullets.push({ x: shooter.x + shooter.w/2, y: shooter.y + shooter.h, vy: 3 });
+    state.lastAlienFire = ts;
+  }
+  state.alienBullets = state.alienBullets.filter(b => b.y < H + 10);
+  state.alienBullets.forEach(b => b.y += b.vy);
+
+  // Move aliens（各自バラバラにX方向のみ動く・下降なし）
+  state.animFrame = Math.floor(ts / 500) % 2;
+  aliveAliens.forEach(a => {
+    a.x += a.vx;
+    if (a.x < 0) { a.x = 0; a.vx *= -1; }
+    if (a.x + a.w > W) { a.x = W - a.w; a.vx *= -1; }
+  });
+
+  // Collision: player bullets vs aliens
+  state.bullets.forEach(b => {
+    state.aliens.forEach(a => {
+      if (!a.alive) return;
+      if (b.x > a.x && b.x < a.x + a.w && b.y > a.y && b.y < a.y + a.h) {
+        a.alive = false;
+        b.y = -999;
+        state.score += (a.type + 1) * 10;
+        document.getElementById('score').textContent = state.score;
+      }
+    });
+  });
+
+  // Collision: alien bullets vs player
+  state.alienBullets.forEach(b => {
+    if (Math.abs(b.x - p.x) < p.w/2 && Math.abs(b.y - p.y) < p.h/2) {
+      b.y = 9999;
+      state.lives--;
+      document.getElementById('lives').textContent = state.lives;
+      if (state.lives <= 0) { state.gameOver = true; showGameOver(); return; }
+    }
+  });
+
+  // Clear check
+  if (aliveAliens.length === 0) {
+    state.cleared = true;
+    showClear();
+    return;
+  }
+
+  // Draw
+  ctx.clearRect(0, 0, W, H);
+  // Stars
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  for(let i=0;i<30;i++){
+    const sx = (i*73+ts*0.01*((i%3)+0.5)) % W;
+    const sy = (i*97) % H;
+    ctx.fillRect(sx,sy,1,1);
+  }
+
+  drawPlayer(p);
+  state.aliens.forEach(a => drawAlien(a, state.animFrame));
+
+  // Bullets
+  ctx.fillStyle = CONFIG.themeColors.green;
+  state.bullets.forEach(b => ctx.fillRect(b.x-2, b.y, 4, 10));
+  ctx.fillStyle = CONFIG.themeColors.pink;
+  state.alienBullets.forEach(b => { ctx.fillRect(b.x-2, b.y, 4, 12); });
+
+  requestAnimationFrame(loop);
+}
+
+function showGameOver() {
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = CONFIG.themeColors.pink;
+  ctx.font = `${Math.floor(W/15)}px 'Press Start 2P'`;
+  ctx.textAlign = 'center';
+  ctx.fillText('GAME OVER', W/2, H/2 - 20);
+  ctx.font = `${Math.floor(W/25)}px 'Press Start 2P'`;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText('TAP TO RETRY', W/2, H/2 + 20);
+  canvas.addEventListener('click', () => location.reload(), {once:true});
+}
+
+function showClear() {
+  // Confetti!
+  for(let i=0;i<80;i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'confetti';
+      el.style.left = Math.random()*100+'vw';
+      el.style.top = '-20px';
+      el.style.background = ['#ff2d78','#ffe600','#00ff88','#00cfff','#bf5fff'][Math.floor(Math.random()*5)];
+      el.style.borderRadius = Math.random()>0.5?'50%':'0';
+      el.style.animationDuration = (1.5+Math.random()*2)+'s';
+      el.style.animationDelay = (Math.random()*1)+'s';
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(), 4000);
+    }, i*30);
+  }
+
+  document.getElementById('game-screen').style.display = 'none';
+  document.getElementById('clear-screen').style.display = 'block';
+
+  fetchBirthdayMessage();
+}
+
+async function fetchBirthdayMessage() {
+  const messages = CONFIG.messages;
+  const msg = messages[Math.floor(Math.random() * messages.length)];
+  document.getElementById('loading-msg').style.display = 'none';
+  document.getElementById('clear-msg').textContent = msg;
+}
+</script>
+</body>
+</html>
