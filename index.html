@@ -31,8 +31,49 @@
     touch-action: none;
   }
 
+  /* ===== GUIDE SCREEN (URLパラメータなし時) ===== */
+  #guide-screen {
+    display: none;
+    text-align: center;
+    padding: 24px;
+    max-width: 92vw;
+    animation: fadeIn 1s ease;
+  }
+  #guide-screen h1 {
+    font-size: clamp(14px, 4.5vw, 22px);
+    color: var(--pink);
+    text-shadow: 0 0 20px var(--pink);
+    margin-bottom: 24px;
+    line-height: 1.6;
+  }
+  #guide-screen p {
+    font-family: 'Zen Maru Gothic', sans-serif;
+    font-size: clamp(13px, 3.5vw, 16px);
+    color: var(--white);
+    margin-bottom: 20px;
+    line-height: 1.8;
+  }
+  #guide-list {
+    font-family: 'Zen Maru Gothic', sans-serif;
+    font-size: clamp(13px, 3.5vw, 15px);
+    color: var(--yellow);
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 12px;
+    padding: 18px 24px;
+    text-align: left;
+    line-height: 2;
+    display: inline-block;
+  }
+  #guide-list code {
+    color: var(--green);
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.85em;
+  }
+
   /* ===== TITLE SCREEN ===== */
   #title-screen {
+    display: none;
     text-align: center;
     padding: 20px;
     animation: fadeIn 1s ease;
@@ -189,6 +230,13 @@
 </head>
 <body>
 
+<!-- GUIDE (URLパラメータなし or 該当者なし) -->
+<div id="guide-screen">
+  <h1>🎮 Birthday Game</h1>
+  <p>URLの末尾に <strong>?p=名前</strong> を<br>付けてアクセスしてください</p>
+  <div id="guide-list">現在登録されている人を読み込み中...</div>
+</div>
+
 <!-- TITLE -->
 <div id="title-screen">
   <h1 id="title-heading"></h1>
@@ -200,7 +248,7 @@
 <div id="game-screen">
   <div id="hud">
     <span>SCORE: <span id="score">0</span></span>
-    <span>❤️ <span id="lives">3</span></span>
+    <span>❤️ <span id="lives">1</span></span>
   </div>
   <canvas id="canvas"></canvas>
   <div id="controls">
@@ -223,66 +271,119 @@
 /* =====================================================================
    ▼▼▼ ここだけ書き換えれば、誰の誕生日にも使えます ▼▼▼
 
-   【使い方】
-   1. このファイルをコピーして「○○_birthday.html」のような名前にする
-   2. 下の CONFIG の中身を、お祝いしたい人に合わせて書き換える
-      - targetName     : 相手の呼び方（例: "田中さん"、"ゆうこちゃん"）
-      - pageTitle      : ブラウザタブに表示されるタイトル
-      - titleHeading   : ゲーム開始画面の大見出し（<br>で改行可）
-      - subtitle       : ゲーム開始画面のサブ説明文（<br>で改行可）
-      - messages       : クリア後にランダム表示されるお祝いメッセージ
-                         （配列に好きなだけ追加OK。\n で改行）
-      - themeColors    : 色を変えたい場合のみ調整（変えなくてもOK）
+   【1ファイルで複数人に対応する仕組み】
+   URLの末尾に  ?p=ID  を付けて、相手ごとに別URLとして配布します。
+   例：
+     https://machonohub.github.io/my-website/?p=tanaka  → 田中さん
+     https://machonohub.github.io/my-website/?p=yamada  → 山田さん
 
-   3. ファイルを開けばすぐ遊べます！
+   【新しい人を追加する手順】
+   1. 下の PEOPLE = { ... } の中に、新しいID（半角英数）でブロックを追加
+        例： tanaka: { targetName: "田中さん", ... }
+   2. ファイルを保存してGitHubにアップロード（index.htmlのまま上書き）
+   3. その人には  ?p=tanaka  付きのURLを送る
+
+   ※ IDはURLにそのまま出るので半角英数推奨（例：tanaka, yumi, taro2）
+   ※ ?p= を付けずにアクセスされた場合は、登録者一覧の案内画面が出ます
    ===================================================================== */
 
-const CONFIG = {
-  targetName: "理哉くん",
+const PEOPLE = {
 
-  pageTitle: "理哉くんへ",
+  // -------- 例：新藤さん（このブロックを真似して人を増やしてください） --------
+  shindo: {
+    pageTitle:    "新藤さんへ",
+    titleHeading: "🎮 新藤さんへ<br>ミッション開始！",
+    subtitle:     "エイリアンを全滅させると<br>大切なメッセージが届くよ👾",
+    messages: [
+      `新藤さんへ 🎮\n\nインベーダーを全滅させるとは…さすがです。宇宙も震えてます。\nそんな新藤さんの誕生日を、地球上の誰よりも先に祝わせてください🌍\nお誕生日おめでとうございます！これからも元気で最高な一年を！🎉`,
 
-  titleHeading: "🎮 理哉くんへ<br>ミッション開始！",
+      `新藤さんへ 👾\n\nエイリアンどもをバッタバッタと倒すとは、恐ろしい人です（褒めてます）。\nそんな無双な新藤さんが、今日めでたく一つ年を重ねました！\nおめでとう！来年もその調子で人生も無双してください🚀✨`,
 
-  subtitle: "エイリアンを全滅させると<br>大切なメッセージが届くよ👾",
+      `新藤さんへ 🎂\n\nこのゲームをクリアするために何回やりましたか？\n1回目？すごすぎ。3回目？それも十分すごい。10回目？その根性が好きです。\nどちらにせよ、お誕生日おめでとうございます！今日は思いっきり祝われてください🎊`,
 
-  themeColors: {
-    bg:     "#0a0a1a",
-    green:  "#00ff88",
-    pink:   "#ff2d78",
-    yellow: "#ffe600",
-    blue:   "#00cfff"
+      `新藤さんへ ✨\n\nインベーダーを倒した腕前、宇宙警備隊に採用されるレベルです。\nでも今日だけは戦いをやめて、ケーキでも食べてゆっくりしてください🍰\nお誕生日おめでとう！新藤さんがいてくれてよかったな、と思ってる人がここにいます😊`,
+
+      `新藤さんへ 🌟\n\nゲームクリアおめでとう！そしてお誕生日おめでとう！\n一度に二つもおめでとうを言える日って、なかなかないですよ。\n今日という日が、新藤さんにとって最高の一日になりますように🎉🥳`
+    ]
   },
 
-  messages: [
-    `理哉くんへ 🎮\n\nインベーダーを全滅させるとは…さすがです。宇宙も震えてます。\nそんな理哉くんの誕生日を、地球上の誰よりも先に祝わせてください🌍\nお誕生日おめでとうございます！これからも元気で最高な一年を！🎉`,
+  michiya: {
+    pageTitle:    "理哉くんへ",
+    titleHeading: "🎮 理哉くんへ<br>ミッション開始！",
+    subtitle:     "エイリアンを全滅させると<br>大切なメッセージが届くよ👾",
+    messages: [
+      `理哉くんへ 🎮\n\nインベーダーを全滅させるとは…さすがです。宇宙も震えてます。\nそんな理哉くんの誕生日を、地球上の誰よりも先に祝わせてください🌍\nお誕生日おめでとうございます！これからも元気で最高な一年を！🎉`,
 
-    `理哉くんへ 👾\n\nエイリアンどもをバッタバッタと倒すとは、恐ろしい人です（褒めてます）。\nそんな無双な理哉くんが、今日めでたく一つ年を重ねました！\nおめでとう！来年もその調子で人生も無双してください🚀✨`,
+      `理哉くんへ 👾\n\nエイリアンどもをバッタバッタと倒すとは、恐ろしい人です（褒めてます）。\nそんな無双な理哉くんが、今日めでたく一つ年を重ねました！\nおめでとう！来年もその調子で人生も無双してください🚀✨`,
 
-    `理哉くんへ 🎂\n\nこのゲームをクリアするために何回やりましたか？\n1回目？すごすぎ。3回目？それも十分すごい。10回目？その根性が好きです。\nどちらにせよ、お誕生日おめでとうございます！今日は思いっきり祝われてください🎊`,
+      `理哉くんへ 🎂\n\nこのゲームをクリアするために何回やりましたか？\n1回目？すごすぎ。3回目？それも十分すごい。10回目？その根性が好きです。\nどちらにせよ、お誕生日おめでとうございます！今日は思いっきり祝われてください🎊`,
 
-    `理哉くんへ ✨\n\nインベーダーを倒した腕前、宇宙警備隊に採用されるレベルです。\nでも今日だけは戦いをやめて、ケーキでも食べてゆっくりしてください🍰\nお誕生日おめでとう！理哉くんがいてくれてよかったな、と思ってる人がここにいます😊`,
+      `理哉くんへ ✨\n\nインベーダーを倒した腕前、宇宙警備隊に採用されるレベルです。\nでも今日だけは戦いをやめて、ケーキでも食べてゆっくりしてください🍰\nお誕生日おめでとう！理哉くんがいてくれてよかったな、と思ってる人がここにいます😊`,
 
-    `理哉くんへ 🌟\n\nゲームクリアおめでとう！そしてお誕生日おめでとう！\n一度に二つもおめでとうを言える日って、なかなかないですよ。\n今日という日が、理哉くんにとって最高の一日になりますように🎉🥳`
-  ]
+      `理哉くんへ 🌟\n\nゲームクリアおめでとう！そしてお誕生日おめでとう！\n一度に二つもおめでとうを言える日って、なかなかないですよ。\n今日という日が、理哉くんにとって最高の一日になりますように🎉🥳`
+    ]
+  },
+
+  // -------- ▼ ここから下に新しい人を追加していきます ▼ --------
+  // tanaka: {
+  //   pageTitle:    "田中さんへ",
+  //   titleHeading: "🎮 田中さんへ<br>ミッション開始！",
+  //   subtitle:     "エイリアンを全滅させると<br>大切なメッセージが届くよ👾",
+  //   messages: [
+  //     `田中さんへ 🎮\n\n...本文をここに...`,
+  //     `田中さんへ 🎂\n\n...別パターンの本文...`,
+  //   ]
+  // },
+
+};
+
+// 共通テーマカラー（基本変えなくてOK。全員に効きます）
+const THEME_COLORS = {
+  bg:     "#0a0a1a",
+  green:  "#00ff88",
+  pink:   "#ff2d78",
+  yellow: "#ffe600",
+  blue:   "#00cfff"
 };
 
 /* =====================================================================
    ▲▲▲ 書き換えはここまで。これより下は触らなくてOKです ▲▲▲
    ===================================================================== */
 
-// CONFIG を画面に反映
-document.title = CONFIG.pageTitle;
-document.getElementById('title-heading').innerHTML = CONFIG.titleHeading;
-document.getElementById('title-subtitle').innerHTML = CONFIG.subtitle;
+// ---- URLパラメータから対象者を判定 ----
+const urlParams = new URLSearchParams(window.location.search);
+const personId = urlParams.get('p');
+const CONFIG = personId ? PEOPLE[personId] : null;
 
-// テーマカラーを反映
+// テーマカラーを反映（全画面共通）
 const root = document.documentElement;
-root.style.setProperty('--bg',     CONFIG.themeColors.bg);
-root.style.setProperty('--green',  CONFIG.themeColors.green);
-root.style.setProperty('--pink',   CONFIG.themeColors.pink);
-root.style.setProperty('--yellow', CONFIG.themeColors.yellow);
-root.style.setProperty('--blue',   CONFIG.themeColors.blue);
+root.style.setProperty('--bg',     THEME_COLORS.bg);
+root.style.setProperty('--green',  THEME_COLORS.green);
+root.style.setProperty('--pink',   THEME_COLORS.pink);
+root.style.setProperty('--yellow', THEME_COLORS.yellow);
+root.style.setProperty('--blue',   THEME_COLORS.blue);
+
+if (!CONFIG) {
+  // ---- 該当者なし or パラメータなし → 案内画面を表示 ----
+  document.title = "Birthday Game";
+  const ids = Object.keys(PEOPLE);
+  const listEl = document.getElementById('guide-list');
+  if (ids.length === 0) {
+    listEl.textContent = "（まだ誰も登録されていません）";
+  } else {
+    listEl.innerHTML = ids.map(id => {
+      const name = PEOPLE[id].pageTitle || id;
+      return `<code>?p=${id}</code> → ${name}`;
+    }).join('<br>');
+  }
+  document.getElementById('guide-screen').style.display = 'block';
+} else {
+  // ---- 該当者あり → 通常のタイトル画面を表示 ----
+  document.title = CONFIG.pageTitle;
+  document.getElementById('title-heading').innerHTML = CONFIG.titleHeading;
+  document.getElementById('title-subtitle').innerHTML = CONFIG.subtitle;
+  document.getElementById('title-screen').style.display = 'block';
+}
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -304,7 +405,7 @@ let state = {
   alienBullets: [],
   aliens: [],
   score: 0,
-  lives: 3,
+  lives: 1,
   gameOver: false,
   cleared: false,
   keys: {},
@@ -357,7 +458,7 @@ addTouch('right-btn', 'touchRight');
 addTouch('fire-btn', 'touchFire');
 
 function drawPlayer(p) {
-  ctx.fillStyle = CONFIG.themeColors.green;
+  ctx.fillStyle = THEME_COLORS.green;
   // Body
   ctx.fillRect(p.x - p.w/2, p.y - p.h/2, p.w, p.h);
   // Gun
@@ -371,7 +472,7 @@ function drawAlien(a, frame) {
   if (!a.alive) return;
   ctx.save();
   ctx.translate(a.x + a.w/2, a.y + a.h/2);
-  const colors = [CONFIG.themeColors.pink, CONFIG.themeColors.yellow, CONFIG.themeColors.blue];
+  const colors = [THEME_COLORS.pink, THEME_COLORS.yellow, THEME_COLORS.blue];
   ctx.fillStyle = colors[a.type];
   const f = frame % 2;
   if (a.type === 2) {
@@ -487,9 +588,9 @@ function loop(ts) {
   state.aliens.forEach(a => drawAlien(a, state.animFrame));
 
   // Bullets
-  ctx.fillStyle = CONFIG.themeColors.green;
+  ctx.fillStyle = THEME_COLORS.green;
   state.bullets.forEach(b => ctx.fillRect(b.x-2, b.y, 4, 10));
-  ctx.fillStyle = CONFIG.themeColors.pink;
+  ctx.fillStyle = THEME_COLORS.pink;
   state.alienBullets.forEach(b => { ctx.fillRect(b.x-2, b.y, 4, 12); });
 
   requestAnimationFrame(loop);
@@ -498,7 +599,7 @@ function loop(ts) {
 function showGameOver() {
   ctx.fillStyle = 'rgba(0,0,0,0.7)';
   ctx.fillRect(0,0,W,H);
-  ctx.fillStyle = CONFIG.themeColors.pink;
+  ctx.fillStyle = THEME_COLORS.pink;
   ctx.font = `${Math.floor(W/15)}px 'Press Start 2P'`;
   ctx.textAlign = 'center';
   ctx.fillText('GAME OVER', W/2, H/2 - 20);
@@ -532,6 +633,7 @@ function showClear() {
 }
 
 async function fetchBirthdayMessage() {
+  if (!CONFIG) return;
   const messages = CONFIG.messages;
   const msg = messages[Math.floor(Math.random() * messages.length)];
   document.getElementById('loading-msg').style.display = 'none';
