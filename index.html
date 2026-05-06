@@ -324,23 +324,6 @@ const PEOPLE = {
     ]
   },
 
-  hiromu: {
-    pageTitle:    "ひろむへ",
-    titleHeading: "🎮 ひろむくんへ<br>ミッション開始！",
-    subtitle:     "エイリアンを全滅させると<br>大切なメッセージが届くよ👾",
-    messages: [
-      `ひろむへ 🎮\n\nインベーダーを全滅させるとは…さすがです。宇宙も震えてます。\nそんなひろむの誕生日を、地球上の誰よりも先に祝わせてください🌍\nお誕生日おめでとうございます！これからも元気で最高な一年を！🎉`,
-
-      `ひろむへ 👾\n\nエイリアンどもをバッタバッタと倒すとは、恐ろしい人です（褒めてます）。\nそんな無双なひろむが、今日めでたく一つ年を重ねました！\nおめでとう！来年もその調子で人生も無双してください🚀✨`,
-
-      `ひろむへ 🎂\n\nこのゲームをクリアするために何回やりましたか？\n1回目？すごすぎ。3回目？それも十分すごい。10回目？その根性が好きです。\nどちらにせよ、お誕生日おめでとうございます！今日は思いっきり祝われてください🎊`,
-
-      `ひろむへ ✨\n\nインベーダーを倒した腕前、宇宙警備隊に採用されるレベルです。\nでも今日だけは戦いをやめて、ケーキでも食べてゆっくりしてください🍰\nお誕生日おめでとう！ひろむがいてくれてよかったな、と思ってる人がここにいます😊`,
-
-      `ひろむへ 🌟\n\nゲームクリアおめでとう！そしてお誕生日おめでとう！\n一度に二つもおめでとうを言える日って、なかなかないですよ。\n今日という日が、ひろむにとって最高の一日になりますように🎉🥳`
-    ]
-  },
-
   // -------- ▼ ここから下に新しい人を追加していきます ▼ --------
   // tanaka: {
   //   pageTitle:    "田中さんへ",
@@ -580,7 +563,7 @@ function loop(ts) {
       b.y = 9999;
       state.lives--;
       document.getElementById('lives').textContent = state.lives;
-      if (state.lives <= 0) { state.gameOver = true; showGameOver(); return; }
+      if (state.lives <= 0) { state.gameOver = true; }
     }
   });
 
@@ -609,6 +592,12 @@ function loop(ts) {
   state.bullets.forEach(b => ctx.fillRect(b.x-2, b.y, 4, 10));
   ctx.fillStyle = THEME_COLORS.pink;
   state.alienBullets.forEach(b => { ctx.fillRect(b.x-2, b.y, 4, 12); });
+
+  // Game over オーバーレイ（描画後に表示すると、最後のシーンの上にGAME OVERが残る）
+  if (state.gameOver) {
+    showGameOver();
+    return;
+  }
 
   requestAnimationFrame(loop);
 }
