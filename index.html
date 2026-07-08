@@ -53,22 +53,67 @@
     margin-bottom: 20px;
     line-height: 1.8;
   }
-  #guide-list {
+  #maker-box {
     font-family: 'Zen Maru Gothic', sans-serif;
-    font-size: clamp(13px, 3.5vw, 15px);
-    color: var(--yellow);
     background: rgba(255,255,255,0.05);
     border: 1px solid rgba(255,255,255,0.2);
     border-radius: 12px;
-    padding: 18px 24px;
-    text-align: left;
-    line-height: 2;
+    padding: 24px;
     display: inline-block;
+    width: min(440px, 88vw);
   }
-  #guide-list code {
+  #name-input {
+    width: 100%;
+    font-family: 'Zen Maru Gothic', sans-serif;
+    font-size: 16px;
+    padding: 12px 14px;
+    background: rgba(0,0,0,0.4);
+    border: 2px solid var(--blue);
+    border-radius: 8px;
+    color: var(--white);
+    outline: none;
+    margin-bottom: 14px;
+  }
+  #name-input:focus { box-shadow: 0 0 12px var(--blue); }
+  #make-btn, #copy-btn {
+    font-family: 'Zen Maru Gothic', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    background: transparent;
+    border: 2px solid var(--green);
     color: var(--green);
-    font-family: 'Press Start 2P', monospace;
-    font-size: 0.85em;
+    transition: all 0.15s;
+  }
+  #make-btn:hover, #make-btn:active,
+  #copy-btn:hover, #copy-btn:active {
+    background: var(--green);
+    color: #000;
+  }
+  #result-area { margin-top: 18px; }
+  #result-url {
+    font-family: monospace;
+    font-size: 13px;
+    color: var(--yellow);
+    background: rgba(0,0,0,0.4);
+    border: 1px dashed rgba(255,255,255,0.3);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    word-break: break-all;
+    text-align: left;
+    line-height: 1.6;
+  }
+  #copy-btn { border-color: var(--pink); color: var(--pink); }
+  #copy-btn:hover, #copy-btn:active { background: var(--pink); color: #000; }
+  #test-link {
+    display: inline-block;
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--blue);
   }
 
   /* ===== TITLE SCREEN ===== */
@@ -230,11 +275,19 @@
 </head>
 <body>
 
-<!-- GUIDE (URLパラメータなし or 該当者なし) -->
+<!-- GUIDE / URLメーカー (URLパラメータなし時) -->
 <div id="guide-screen">
-  <h1>🎮 Birthday Game</h1>
-  <p>URLの末尾に <strong>?p=名前</strong> を<br>付けてアクセスしてください</p>
-  <div id="guide-list">現在登録されている人を読み込み中...</div>
+  <h1>🎮 Birthday Game<br>URLメーカー</h1>
+  <p>友達の名前を入れると<br>その人専用のURLができます</p>
+  <div id="maker-box">
+    <input type="text" id="name-input" placeholder="例：田中さん / 理哉くん" autocomplete="off">
+    <button id="make-btn" onclick="makeUrl()">URLを作る</button>
+    <div id="result-area" style="display:none">
+      <div id="result-url"></div>
+      <button id="copy-btn" onclick="copyUrl()">📋 URLをコピー</button>
+      <a id="test-link" href="#" target="_blank">▶ 動作チェック（新しいタブで開く）</a>
+    </div>
+  </div>
 </div>
 
 <!-- TITLE -->
@@ -253,7 +306,7 @@
   <canvas id="canvas"></canvas>
   <div id="controls">
     <button class="ctrl-btn" id="left-btn">◀</button>
-    <button class="ctrl-btn" id="fire-btn" id="fire-btn-el">FIRE</button>
+    <button class="ctrl-btn" id="fire-btn">FIRE</button>
     <button class="ctrl-btn" id="right-btn">▶</button>
   </div>
 </div>
@@ -269,73 +322,70 @@
 
 <script>
 /* =====================================================================
-   ▼▼▼ ここだけ書き換えれば、誰の誕生日にも使えます ▼▼▼
+   ▼▼▼ 使い方（もうファイル編集は不要です！）▼▼▼
 
-   【1ファイルで複数人に対応する仕組み】
-   URLの末尾に  ?p=ID  を付けて、相手ごとに別URLとして配布します。
-   例：
-     https://machonohub.github.io/my-website/?p=tanaka  → 田中さん
-     https://machonohub.github.io/my-website/?p=yamada  → 山田さん
+   【仕組み】
+   友達の名前はURL自体に埋め込まれます。ファイルの書き換えや
+   GitHubへの再アップロードは一切不要です。
 
-   【新しい人を追加する手順】
-   1. 下の PEOPLE = { ... } の中に、新しいID（半角英数）でブロックを追加
-        例： tanaka: { targetName: "田中さん", ... }
-   2. ファイルを保存してGitHubにアップロード（index.htmlのまま上書き）
-   3. その人には  ?p=tanaka  付きのURLを送る
+   【友達に送るURLの作り方】
+   1. パラメータなしでこのページを開く
+        例： https://machonohub.github.io/my-website/
+      → 「URLメーカー」画面が出るので、名前を入れてURLをコピー
+   2. できたURLをそのまま友達に送るだけ！
+        例： https://machonohub.github.io/my-website/?b=5paw6Jek44GV44KT
 
-   ※ IDはURLにそのまま出るので半角英数推奨（例：tanaka, yumi, taro2）
-   ※ ?p= を付けずにアクセスされた場合は、登録者一覧の案内画面が出ます
+   ※ 手打ちで作りたい場合は  ?n=名前  でもOK（例：?n=田中さん）
+   ※ 昔の  ?p=shindo / ?p=michiya  形式のURLもそのまま動きます
+   ※ メッセージ文面を変えたいときは下の MESSAGE_TEMPLATES を編集
+     （{name} の部分に友達の名前が入ります）
    ===================================================================== */
 
-const PEOPLE = {
+// クリア後のお祝いメッセージ（この中からランダムで1つ表示。{name}＝友達の名前）
+const MESSAGE_TEMPLATES = [
+  `{name}へ 🎮\n\nインベーダーを全滅させるとは…さすがです。宇宙も震えてます。\nそんな{name}の誕生日を、地球上の誰よりも先に祝わせてください🌍\nお誕生日おめでとうございます！これからも元気で最高な一年を！🎉`,
 
-  // -------- 例：新藤さん（このブロックを真似して人を増やしてください） --------
-  shindo: {
-    pageTitle:    "新藤さんへ",
-    titleHeading: "🎮 新藤さんへ<br>ミッション開始！",
-    subtitle:     "エイリアンを全滅させると<br>大切なメッセージが届くよ👾",
-    messages: [
-      `新藤さんへ 🎮\n\nインベーダーを全滅させるとは…さすがです。宇宙も震えてます。\nそんな新藤さんの誕生日を、地球上の誰よりも先に祝わせてください🌍\nお誕生日おめでとうございます！これからも元気で最高な一年を！🎉`,
+  `{name}へ 👾\n\nエイリアンどもをバッタバッタと倒すとは、恐ろしい人です（褒めてます）。\nそんな無双な{name}が、今日めでたく一つ年を重ねました！\nおめでとう！来年もその調子で人生も無双してください🚀✨`,
 
-      `新藤さんへ 👾\n\nエイリアンどもをバッタバッタと倒すとは、恐ろしい人です（褒めてます）。\nそんな無双な新藤さんが、今日めでたく一つ年を重ねました！\nおめでとう！来年もその調子で人生も無双してください🚀✨`,
+  `{name}へ 🎂\n\nこのゲームをクリアするために何回やりましたか？\n1回目？すごすぎ。3回目？それも十分すごい。10回目？その根性が好きです。\nどちらにせよ、お誕生日おめでとうございます！今日は思いっきり祝われてください🎊`,
 
-      `新藤さんへ 🎂\n\nこのゲームをクリアするために何回やりましたか？\n1回目？すごすぎ。3回目？それも十分すごい。10回目？その根性が好きです。\nどちらにせよ、お誕生日おめでとうございます！今日は思いっきり祝われてください🎊`,
+  `{name}へ ✨\n\nインベーダーを倒した腕前、宇宙警備隊に採用されるレベルです。\nでも今日だけは戦いをやめて、ケーキでも食べてゆっくりしてください🍰\nお誕生日おめでとう！{name}がいてくれてよかったな、と思ってる人がここにいます😊`,
 
-      `新藤さんへ ✨\n\nインベーダーを倒した腕前、宇宙警備隊に採用されるレベルです。\nでも今日だけは戦いをやめて、ケーキでも食べてゆっくりしてください🍰\nお誕生日おめでとう！新藤さんがいてくれてよかったな、と思ってる人がここにいます😊`,
+  `{name}へ 🌟\n\nゲームクリアおめでとう！そしてお誕生日おめでとう！\n一度に二つもおめでとうを言える日って、なかなかないですよ。\n今日という日が、{name}にとって最高の一日になりますように🎉🥳`
+];
 
-      `新藤さんへ 🌟\n\nゲームクリアおめでとう！そしてお誕生日おめでとう！\n一度に二つもおめでとうを言える日って、なかなかないですよ。\n今日という日が、新藤さんにとって最高の一日になりますように🎉🥳`
-    ]
-  },
-
-  michiya: {
-    pageTitle:    "理哉くんへ",
-    titleHeading: "🎮 理哉くんへ<br>ミッション開始！",
-    subtitle:     "エイリアンを全滅させると<br>大切なメッセージが届くよ👾",
-    messages: [
-      `理哉くんへ 🎮\n\nインベーダーを全滅させるとは…さすがです。宇宙も震えてます。\nそんな理哉くんの誕生日を、地球上の誰よりも先に祝わせてください🌍\nお誕生日おめでとうございます！これからも元気で最高な一年を！🎉`,
-
-      `理哉くんへ 👾\n\nエイリアンどもをバッタバッタと倒すとは、恐ろしい人です（褒めてます）。\nそんな無双な理哉くんが、今日めでたく一つ年を重ねました！\nおめでとう！来年もその調子で人生も無双してください🚀✨`,
-
-      `理哉くんへ 🎂\n\nこのゲームをクリアするために何回やりましたか？\n1回目？すごすぎ。3回目？それも十分すごい。10回目？その根性が好きです。\nどちらにせよ、お誕生日おめでとうございます！今日は思いっきり祝われてください🎊`,
-
-      `理哉くんへ ✨\n\nインベーダーを倒した腕前、宇宙警備隊に採用されるレベルです。\nでも今日だけは戦いをやめて、ケーキでも食べてゆっくりしてください🍰\nお誕生日おめでとう！理哉くんがいてくれてよかったな、と思ってる人がここにいます😊`,
-
-      `理哉くんへ 🌟\n\nゲームクリアおめでとう！そしてお誕生日おめでとう！\n一度に二つもおめでとうを言える日って、なかなかないですよ。\n今日という日が、理哉くんにとって最高の一日になりますように🎉🥳`
-    ]
-  },
-
-  // -------- ▼ ここから下に新しい人を追加していきます ▼ --------
-  // tanaka: {
-  //   pageTitle:    "田中さんへ",
-  //   titleHeading: "🎮 田中さんへ<br>ミッション開始！",
-  //   subtitle:     "エイリアンを全滅させると<br>大切なメッセージが届くよ👾",
-  //   messages: [
-  //     `田中さんへ 🎮\n\n...本文をここに...`,
-  //     `田中さんへ 🎂\n\n...別パターンの本文...`,
-  //   ]
-  // },
-
+// 昔の ?p=ID 形式との互換用（ID → 表示名）。新しく増やす必要はありません
+const LEGACY_PEOPLE = {
+  shindo:  "新藤さん",
+  michiya: "理哉くん"
 };
+
+// 名前からゲーム設定を組み立てる
+function buildConfig(name) {
+  return {
+    pageTitle:    `${name}へ`,
+    titleHeading: `🎮 ${name}へ<br>ミッション開始！`,
+    subtitle:     "エイリアンを全滅させると<br>大切なメッセージが届くよ👾",
+    messages: MESSAGE_TEMPLATES.map(t => t.replaceAll("{name}", name))
+  };
+}
+
+// 名前 ⇔ URL用文字列（Base64url）の変換
+function encodeName(name) {
+  const bytes = new TextEncoder().encode(name);
+  let bin = "";
+  bytes.forEach(b => bin += String.fromCharCode(b));
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function decodeName(str) {
+  try {
+    const b64 = str.replace(/-/g, "+").replace(/_/g, "/");
+    const bin = atob(b64);
+    return new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0)));
+  } catch (e) {
+    return null;
+  }
+}
 
 // 共通テーマカラー（基本変えなくてOK。全員に効きます）
 const THEME_COLORS = {
@@ -351,9 +401,17 @@ const THEME_COLORS = {
    ===================================================================== */
 
 // ---- URLパラメータから対象者を判定 ----
+// 優先順位： ?b=（Base64エンコード名） → ?n=（名前そのまま） → ?p=（旧ID形式）
 const urlParams = new URLSearchParams(window.location.search);
-const personId = urlParams.get('p');
-const CONFIG = personId ? PEOPLE[personId] : null;
+let friendName = null;
+if (urlParams.get('b')) {
+  friendName = decodeName(urlParams.get('b'));
+} else if (urlParams.get('n')) {
+  friendName = urlParams.get('n').trim() || null;
+} else if (urlParams.get('p')) {
+  friendName = LEGACY_PEOPLE[urlParams.get('p')] || null;
+}
+const CONFIG = friendName ? buildConfig(friendName) : null;
 
 // テーマカラーを反映（全画面共通）
 const root = document.documentElement;
@@ -364,18 +422,8 @@ root.style.setProperty('--yellow', THEME_COLORS.yellow);
 root.style.setProperty('--blue',   THEME_COLORS.blue);
 
 if (!CONFIG) {
-  // ---- 該当者なし or パラメータなし → 案内画面を表示 ----
-  document.title = "Birthday Game";
-  const ids = Object.keys(PEOPLE);
-  const listEl = document.getElementById('guide-list');
-  if (ids.length === 0) {
-    listEl.textContent = "（まだ誰も登録されていません）";
-  } else {
-    listEl.innerHTML = ids.map(id => {
-      const name = PEOPLE[id].pageTitle || id;
-      return `<code>?p=${id}</code> → ${name}`;
-    }).join('<br>');
-  }
+  // ---- パラメータなし or 解読失敗 → URLメーカー画面を表示 ----
+  document.title = "Birthday Game URLメーカー";
   document.getElementById('guide-screen').style.display = 'block';
 } else {
   // ---- 該当者あり → 通常のタイトル画面を表示 ----
@@ -383,6 +431,48 @@ if (!CONFIG) {
   document.getElementById('title-heading').innerHTML = CONFIG.titleHeading;
   document.getElementById('title-subtitle').innerHTML = CONFIG.subtitle;
   document.getElementById('title-screen').style.display = 'block';
+}
+
+// ---- URLメーカー ----
+let generatedUrl = "";
+
+function makeUrl() {
+  const name = document.getElementById('name-input').value.trim();
+  if (!name) {
+    document.getElementById('name-input').focus();
+    return;
+  }
+  const base = location.origin + location.pathname;
+  generatedUrl = `${base}?b=${encodeName(name)}`;
+  document.getElementById('result-url').textContent = generatedUrl;
+  document.getElementById('test-link').href = generatedUrl;
+  document.getElementById('result-area').style.display = 'block';
+}
+
+async function copyUrl() {
+  if (!generatedUrl) return;
+  const btn = document.getElementById('copy-btn');
+  try {
+    await navigator.clipboard.writeText(generatedUrl);
+    btn.textContent = "✅ コピーしました！";
+  } catch (e) {
+    // クリップボードが使えない環境向けのフォールバック
+    const ta = document.createElement('textarea');
+    ta.value = generatedUrl;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+    btn.textContent = "✅ コピーしました！";
+  }
+  setTimeout(() => { btn.textContent = "📋 URLをコピー"; }, 2000);
+}
+
+const nameInput = document.getElementById('name-input');
+if (nameInput) {
+  nameInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') makeUrl();
+  });
 }
 
 const canvas = document.getElementById('canvas');
