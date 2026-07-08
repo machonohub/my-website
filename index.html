@@ -75,6 +75,50 @@
     margin-bottom: 14px;
   }
   #name-input:focus { box-shadow: 0 0 12px var(--blue); }
+  #genre-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--white);
+    text-align: left;
+    margin-bottom: 8px;
+  }
+  #genre-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .genre-btn {
+    font-family: 'Zen Maru Gothic', sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 14px;
+    background: rgba(0,0,0,0.4);
+    border: 2px solid rgba(255,255,255,0.25);
+    border-radius: 8px;
+    color: var(--white);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+  }
+  .genre-btn .genre-emoji { font-size: 22px; }
+  .genre-btn .genre-text {
+    font-size: 13px;
+    line-height: 1.5;
+    color: rgba(255,255,255,0.7);
+  }
+  .genre-btn .genre-text strong {
+    font-size: 14px;
+    color: var(--white);
+  }
+  .genre-btn.selected {
+    border-color: var(--yellow);
+    background: rgba(255,230,0,0.08);
+    box-shadow: 0 0 10px rgba(255,230,0,0.4);
+  }
+  .genre-btn.selected .genre-text strong { color: var(--yellow); }
   #make-btn, #copy-btn {
     font-family: 'Zen Maru Gothic', sans-serif;
     font-weight: 700;
@@ -281,6 +325,21 @@
   <p>友達の名前を入れると<br>その人専用のURLができます</p>
   <div id="maker-box">
     <input type="text" id="name-input" placeholder="例：田中さん / 理哉くん" autocomplete="off">
+    <div id="genre-label">送る相手は？</div>
+    <div id="genre-options">
+      <button type="button" class="genre-btn selected" data-genre="friend">
+        <span class="genre-emoji">🍻</span>
+        <span class="genre-text"><strong>仲良しの友達</strong><br>ラフにいじりつつ全力で祝う</span>
+      </button>
+      <button type="button" class="genre-btn" data-genre="senpai">
+        <span class="genre-emoji">🙏</span>
+        <span class="genre-text"><strong>年上の先輩</strong><br>気楽に、でも敬意を忘れずに</span>
+      </button>
+      <button type="button" class="genre-btn" data-genre="kid">
+        <span class="genre-emoji">🧒</span>
+        <span class="genre-text"><strong>子ども（甥っ子/姪っ子など）</strong><br>ひらがな多めでやさしく</span>
+      </button>
+    </div>
     <button id="make-btn" onclick="makeUrl()">URLを作る</button>
     <div id="result-area" style="display:none">
       <div id="result-url"></div>
@@ -335,24 +394,67 @@
    2. できたURLをそのまま友達に送るだけ！
         例： https://machonohub.github.io/my-website/?b=5paw6Jek44GV44KT
 
-   ※ 手打ちで作りたい場合は  ?n=名前  でもOK（例：?n=田中さん）
+   ※ 手打ちで作りたい場合は  ?n=名前&g=ジャンル  でもOK
+     （例：?n=田中さん&g=friend　ジャンルは friend / senpai / kid）
    ※ 昔の  ?p=shindo / ?p=michiya  形式のURLもそのまま動きます
-   ※ メッセージ文面を変えたいときは下の MESSAGE_TEMPLATES を編集
+   ※ メッセージ文面を変えたいときは下の GENRES を編集
      （{name} の部分に友達の名前が入ります）
    ===================================================================== */
 
-// クリア後のお祝いメッセージ（この中からランダムで1つ表示。{name}＝友達の名前）
-const MESSAGE_TEMPLATES = [
-  `{name}へ 🎮\n\nインベーダーを全滅させるとは…さすがです。宇宙も震えてます。\nそんな{name}の誕生日を、地球上の誰よりも先に祝わせてください🌍\nお誕生日おめでとうございます！これからも元気で最高な一年を！🎉`,
+// 送る相手のジャンルごとの設定。
+// messages の中からランダムで1つ表示されます（{name}＝友達の名前）
+const GENRES = {
 
-  `{name}へ 👾\n\nエイリアンどもをバッタバッタと倒すとは、恐ろしい人です（褒めてます）。\nそんな無双な{name}が、今日めでたく一つ年を重ねました！\nおめでとう！来年もその調子で人生も無双してください🚀✨`,
+  // -------- 🍻 仲良しの友達（ラフに、でも全力で祝う） --------
+  friend: {
+    subtitle: "エイリアンを全滅させると<br>大切なメッセージが届くよ👾",
+    messages: [
+      `{name}へ 🎮\n\nエイリアン全滅させたって？やるじゃん…正直ちょっとビビってる。\nその腕前に敬意を表しつつ、今日は言わせてくれ。\n誕生日おめでとう！！今年も一緒にくだらないことして笑おうな🎉`,
 
-  `{name}へ 🎂\n\nこのゲームをクリアするために何回やりましたか？\n1回目？すごすぎ。3回目？それも十分すごい。10回目？その根性が好きです。\nどちらにせよ、お誕生日おめでとうございます！今日は思いっきり祝われてください🎊`,
+      `{name}へ 👾\n\nゲームクリアおめでとう。そして誕生日おめでとう。\nおめでとうが渋滞してるけど、どっちも本気のやつです。\n{name}が生まれてきてくれた日に、宇宙人退治までしてくれてありがとう🛸✨`,
 
-  `{name}へ ✨\n\nインベーダーを倒した腕前、宇宙警備隊に採用されるレベルです。\nでも今日だけは戦いをやめて、ケーキでも食べてゆっくりしてください🍰\nお誕生日おめでとう！{name}がいてくれてよかったな、と思ってる人がここにいます😊`,
+      `{name}へ 🎂\n\nこのゲーム、何回目のチャレンジでクリアした？\n1回目なら天才。5回目なら努力の人。10回目なら…その執念が大好きだ。\nとにかく誕生日おめでとう！今日はケーキ食べて優勝してくれ🍰`,
 
-  `{name}へ 🌟\n\nゲームクリアおめでとう！そしてお誕生日おめでとう！\n一度に二つもおめでとうを言える日って、なかなかないですよ。\n今日という日が、{name}にとって最高の一日になりますように🎉🥳`
-];
+      `{name}へ 🚀\n\n地球の平和を守ってくれてありがとう。宇宙警備隊から表彰状が届く予定です（届きません）。\n冗談はさておき、{name}の誕生日を祝えるのが毎年ちょっと嬉しい。\nおめでとう！最高の一年にしような🎉`,
+
+      `{name}へ 🌟\n\nエイリアンより手強いのは日々のあれこれだけど、{name}なら余裕でクリアできるって知ってる。\n誕生日おめでとう！今日くらいは全部忘れて、思いっきり祝われてくれ🥳`
+    ]
+  },
+
+  // -------- 🙏 年上の先輩（気楽に、でも敬意を忘れずに） --------
+  senpai: {
+    subtitle: "エイリアンを全滅させると<br>特別なメッセージが届きます👾",
+    messages: [
+      `{name}へ 🎮\n\nお見事です…！エイリアンたちも「この人には勝てない」と口々に言っていました。\nそんな頼れる{name}のお誕生日、後輩として全力でお祝いさせてください。\nお誕生日おめでとうございます！今年も背中を追いかけます🎉`,
+
+      `{name}へ 👾\n\nゲームまで華麗にクリアされるとは…もう尊敬しかありません。\n日頃の感謝を込めて、このゲームを贈らせていただきました。\nお誕生日おめでとうございます！素敵な一年になりますように✨`,
+
+      `{name}へ 🎂\n\n仕事もゲームも一流とは、ずるいくらいかっこいいです。\nいつも助けていただいてばかりなので、今日は思いきり祝わせてください。\nお誕生日おめでとうございます！今日は主役なので、たっぷり祝われてください🎊`,
+
+      `{name}へ 🚀\n\nインベーダー撃退、お疲れさまでした！おかげで地球は今日も平和です。\n{name}とご一緒する時間はいつも楽しくて、勝手に元気をもらっています。\nお誕生日おめでとうございます！これからもよろしくお願いします😊`,
+
+      `{name}へ 🌟\n\nゲームクリアおめでとうございます！そしてお誕生日おめでとうございます！\nおめでとうを2回も言える今日は、こちらまで嬉しくなる特別な日です。\n{name}にとって最高の一年になりますように🥳`
+    ]
+  },
+
+  // -------- 🧒 子ども（甥っ子/姪っ子など。ひらがな多めでやさしく） --------
+  kid: {
+    subtitle: "エイリアンをぜんぶたおすと<br>だいじなメッセージがとどくよ👾",
+    messages: [
+      `{name}へ 🎮\n\nエイリアンをぜんぶやっつけたね！すごい！つよい！かっこいい！\nちきゅうをまもってくれてありがとう。\nそして…おたんじょうびおめでとう！！🎂 ことしもいっぱいあそぼうね🎉`,
+
+      `{name}へ 👾\n\nゲームクリアおめでとう！{name}はゲームのてんさいかもしれない…！\nきょうは{name}がうまれてきてくれた、とくべつな日。\nおたんじょうびおめでとう！すてきな1年になりますように🥳`,
+
+      `{name}へ 🚀\n\nうちゅうのエイリアンたちが「{name}にはかなわない〜！」ってにげていったよ。\nそんなヒーローの{name}、おたんじょうびおめでとう！\nケーキをいっぱいたべて、もっとつよくなってね🍰`,
+
+      `{name}へ 🌟\n\nすごいすごい！エイリアンをぜんぶたおしちゃった！\nがんばった{name}に、とっておきのことばをおくるね。\n「おたんじょうびおめでとう！！」🎉 ことしもえがおいっぱいですごしてね😊`,
+
+      `{name}へ 🎂\n\nゲームクリア、おめでとう！{name}のゆうきとがんばりに、はくしゅ〜！👏\nそして、おたんじょうびおめでとう！\nこれからも、すきなことをいっぱいたのしんでね🥳`
+    ]
+  }
+
+};
+const DEFAULT_GENRE = "friend";
 
 // 昔の ?p=ID 形式との互換用（ID → 表示名）。新しく増やす必要はありません
 const LEGACY_PEOPLE = {
@@ -360,13 +462,14 @@ const LEGACY_PEOPLE = {
   michiya: "理哉くん"
 };
 
-// 名前からゲーム設定を組み立てる
-function buildConfig(name) {
+// 名前とジャンルからゲーム設定を組み立てる
+function buildConfig(name, genre) {
+  const g = GENRES[genre] || GENRES[DEFAULT_GENRE];
   return {
     pageTitle:    `${name}へ`,
     titleHeading: `🎮 ${name}へ<br>ミッション開始！`,
-    subtitle:     "エイリアンを全滅させると<br>大切なメッセージが届くよ👾",
-    messages: MESSAGE_TEMPLATES.map(t => t.replaceAll("{name}", name))
+    subtitle:     g.subtitle,
+    messages: g.messages.map(t => t.replaceAll("{name}", name))
   };
 }
 
@@ -401,7 +504,8 @@ const THEME_COLORS = {
    ===================================================================== */
 
 // ---- URLパラメータから対象者を判定 ----
-// 優先順位： ?b=（Base64エンコード名） → ?n=（名前そのまま） → ?p=（旧ID形式）
+// 名前： ?b=（Base64エンコード名） → ?n=（名前そのまま） → ?p=（旧ID形式）
+// ジャンル： ?g=friend / senpai / kid（なければ friend）
 const urlParams = new URLSearchParams(window.location.search);
 let friendName = null;
 if (urlParams.get('b')) {
@@ -411,7 +515,8 @@ if (urlParams.get('b')) {
 } else if (urlParams.get('p')) {
   friendName = LEGACY_PEOPLE[urlParams.get('p')] || null;
 }
-const CONFIG = friendName ? buildConfig(friendName) : null;
+const friendGenre = urlParams.get('g') || DEFAULT_GENRE;
+const CONFIG = friendName ? buildConfig(friendName, friendGenre) : null;
 
 // テーマカラーを反映（全画面共通）
 const root = document.documentElement;
@@ -435,6 +540,18 @@ if (!CONFIG) {
 
 // ---- URLメーカー ----
 let generatedUrl = "";
+let selectedGenre = DEFAULT_GENRE;
+
+// ジャンル選択ボタン
+document.querySelectorAll('.genre-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.genre-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedGenre = btn.dataset.genre;
+    // 選択を変えたらURLを作り直してもらう
+    if (generatedUrl) makeUrl();
+  });
+});
 
 function makeUrl() {
   const name = document.getElementById('name-input').value.trim();
@@ -443,7 +560,7 @@ function makeUrl() {
     return;
   }
   const base = location.origin + location.pathname;
-  generatedUrl = `${base}?b=${encodeName(name)}`;
+  generatedUrl = `${base}?b=${encodeName(name)}&g=${selectedGenre}`;
   document.getElementById('result-url').textContent = generatedUrl;
   document.getElementById('test-link').href = generatedUrl;
   document.getElementById('result-area').style.display = 'block';
