@@ -31,6 +31,18 @@
     touch-action: none;
   }
 
+  /* URLメーカー表示時だけスクロールを許可（画面が低いPCでもボタンが押せるように） */
+  body.scrollable {
+    overflow-y: auto;
+    touch-action: auto;
+    justify-content: flex-start;
+  }
+  body.scrollable #guide-screen {
+    margin: auto;
+    padding-top: 32px;
+    padding-bottom: 32px;
+  }
+
   /* ===== GUIDE SCREEN (URLパラメータなし時) ===== */
   #guide-screen {
     display: none;
@@ -529,6 +541,7 @@ root.style.setProperty('--blue',   THEME_COLORS.blue);
 if (!CONFIG) {
   // ---- パラメータなし or 解読失敗 → URLメーカー画面を表示 ----
   document.title = "Birthday Game URLメーカー";
+  document.body.classList.add('scrollable');
   document.getElementById('guide-screen').style.display = 'block';
 } else {
   // ---- 該当者あり → 通常のタイトル画面を表示 ----
